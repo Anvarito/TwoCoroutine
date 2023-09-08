@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -10,22 +8,20 @@ public class Launcher : MonoBehaviour
 {
     [SerializeField] private Button _launchButton;
     [SerializeField] private TextMeshProUGUI _buttonText;
-    [SerializeField] private TextMeshProUGUI _textField1;
-    [SerializeField] private TextMeshProUGUI _textField2;
-    [SerializeField] private Image _ingicator1;
-    [SerializeField] private Image _ingicator2;
+    [SerializeField] private List<Indicator> _indicators;
 
-    private IEnumerator _currentCoroutine;
-
-    private Color _inactiveColor = Color.yellow;
-    private Color _awaitColor = Color.red;
-    private Color _activeColor = Color.green;
+    private int _numberIndicator = 0;
 
     private bool _isLaunch = false;
     private int _seconds;
 
     private void Start()
     {
+        foreach (var i in _indicators)
+        {
+            i.OnComplete += CoroutineComplete;
+            i.ResetCoroutine();
+        }
         ResetAll();
         _launchButton.onClick.AddListener(Clicked);
     }
@@ -41,60 +37,41 @@ public class Launcher : MonoBehaviour
     private void ResetAll()
     {
         _isLaunch = false;
-
-        if(_currentCoroutine != null) StopCoroutine(_currentCoroutine);
-
         _buttonText.text = "Start";
-        _ingicator1.color = _inactiveColor;
-        _ingicator2.color = _inactiveColor;
-
-        _textField1.text = 0.ToString();
-        _textField2.text = 0.ToString();
+        _numberIndicator = 0;
+        foreach (var i in _indicators)
+        {
+            i.ResetCoroutine();
+        }
     }
     private void Launch()
     {
         _isLaunch = true;
         _seconds = Random.Range(10, 21);
-
-        _ingicator1.color = _awaitColor;
-        _ingicator2.color = _awaitColor;
         _buttonText.text = "Stop";
 
-        _currentCoroutine = TimerOne();
-        StartCoroutine(_currentCoroutine);
+        LaunchCurrentIndicator();
     }
 
-    private IEnumerator TimerOne()
+    private void CoroutineComplete()
     {
-        _ingicator1.color = _activeColor;
-        float timer = _seconds;
-        while(timer >= 0)
-        {
-            timer -= Time.deltaTime;
-            _textField1.text = Math.Clamp(Math.Floor(timer), 0, _seconds).ToString();
-            yield return null;
-        }
+        _numberIndicator++;
+        if (_numberIndicator > _indicators.Count - 1)
+            _numberIndicator = 0;
 
-        _ingicator1.color = _awaitColor;
-
-        _currentCoroutine = TimerTwo();
-        StartCoroutine(_currentCoroutine);
+        LaunchCurrentIndicator();
     }
 
-    private IEnumerator TimerTwo()
+    private void LaunchCurrentIndicator()
     {
-        _ingicator2.color = _activeColor;
-        float timer = _seconds;
-        while (timer >= 0)
+        _indicators[_numberIndicator].Launch(_seconds);
+
+        foreach (var i in _indicators)
         {
-            timer -= Time.deltaTime;
-            _textField2.text = Math.Clamp(Math.Floor(timer), 0, _seconds).ToString();
-            yield return null;
+            if (i == _indicators[_numberIndicator])
+                continue;
+            else
+                i.MakeInactive();
         }
-
-        _ingicator2.color = _awaitColor;
-
-        _currentCoroutine = TimerOne();
-        StartCoroutine(_currentCoroutine);
     }
 }
